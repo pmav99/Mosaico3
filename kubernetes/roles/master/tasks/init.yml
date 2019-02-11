@@ -1,21 +1,45 @@
-- lineinfile: dest=/etc/sysctl.conf line='net.bridge.bridge-nf-call-ip6tables = 1' state=present
-- lineinfile: dest=/etc/sysctl.conf line='net.bridge.bridge-nf-call-iptables = 1' state=present
-- name: initialize kube
+---
+
+
+- name: 'Enable bridge bridge-nf-call-ip?tables'
+  sysctl:
+    name: '{{ item }}'
+    value: 1
+    state: 'present'
+    reload: true
+    sysctl_set: true
+  with_items:
+    - 'net.bridge.bridge-nf-call-ip6tables'
+    - 'net.bridge.bridge-nf-call-iptables'
+
+- name: 'Initialize kube'
   shell: >
        sysctl -p &&
        kubeadm reset --force &&
        kubeadm init --apiserver-advertise-address=10.0.0.10 --apiserver-cert-extra-sans={{inventory_hostname}} --pod-network-cidr=10.244.0.0/16
   args:
-    creates: /etc/kubeadm-join.sh
-  register: kubeadm_out
-- lineinfile:
-    path: /etc/kubeadm-join.sh
-    line: "{{kubeadm_out.stdout_lines[-1]}}"
-    create: yes
+    creates: '/etc/kubeadm-join.sh'
+  register: 'kubeadm_out'
+
+- name: 'Create /etc/kubeadm-join.sh'
+  lineinfile:
+    path: '/etc/kubeadm-join.sh'
+    line: '{{kubeadm_out.stdout_lines[-1]}}'
+    create: true
   when: kubeadm_out.stdout.find("kubeadm join") != -1
-- service: name=kubelet state=started enabled=yes
-- file: name=/etc/kubectl state=directory
-- name: fix configmap for proxy
+
+- name: 'Start kubelet'
+  service:
+    name: 'kubelet'
+    state: 'started'
+    enabled: true
+
+- name: 'Create /etc/kubectl'
+  file:
+    name: 'etc/kubectl'
+    state: 'directory'
+
+- name: 'Fix configmap for proxy'
   shell: >
     export KUBECONFIG=/etc/kubernetes/admin.conf ;
     kubectl -n kube-system get cm/kube-proxy -o yaml
@@ -23,4 +47,4 @@
     kubectl -n kube-system replace cm/kube-proxy -f  /etc/kubectl/kube-proxy.map ;
     kubectl -n kube-system delete pods -l k8s-app=kube-proxy
   args:
-    creates: /etc/kubectl/kube-proxy.map
+    creates: '/etc/kubectl/kube-proxy.map'

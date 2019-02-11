@@ -1,10 +1,44 @@
-- lineinfile:
-    path: /root/.bash_profile
+---
+
+- name: 'Make sure that $KUBECONFIG will be set'
+  lineinfile:
+    path: '/root/.bash_profile'
     line: 'export KUBECONFIG=/etc/kubernetes/admin.conf'
-    create: yes
-- file: path=/home/vagrant/.kube state=directory owner=vagrant
-- file: path=/home/ubuntu/.kube state=directory owner=ubuntu
-- command: cp /etc/kubernetes/admin.conf /home/vagrant/.kube/config
-- command: cp /etc/kubernetes/admin.conf /home/ubuntu/.kube/config
-- file: name=/home/vagrant/.kube/config state=file owner=vagrant
-- file: name=/home/ubuntu/.kube/config state=file owner=ubuntu
+    create: true
+  become: true
+
+- name: 'Create /home/{{ item }}/.kube directory'
+  file:
+    path: '/home/{{ item }}/.kube'
+    state: 'directory'
+    owner: '{{ item }}'
+    group: '{{ item }}'
+  with_items:
+    - 'ubuntu'
+    - 'vagrant'
+    - 'pmav99'
+  become: true
+
+- name: 'Copy kubernetes configuration to the users'
+  copy:
+    src: '/etc/kubernetes/admin.conf'
+    dest: '/home/{{ item }}/.kube/config'
+    remote_src: true
+    owner: '{{ item }}'
+    group: '{{ item }}'
+  with_items:
+    - 'ubuntu'
+    - 'vagrant'
+    - 'pmav99'
+  become: true
+
+- name: 'Make sure that $KUBECONFIG will be set for the users'
+  lineinfile:
+    path: '/home/{{ item }}/.bash_profile'
+    line: 'export KUBECONFIG="${HOME}/.kube/config"'
+    create: true
+  with_items:
+    - 'ubuntu'
+    - 'vagrant'
+    - 'pmav99'
+  become: true

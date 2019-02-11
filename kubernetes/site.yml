@@ -1,23 +1,37 @@
 ---
-- name: prepare all
-  hosts: all
-  become: True
-  gather_facts: True
-  roles:
-    - { role: 'prepare', tags: 'prepare' }
 
-- name: init master
-  hosts: masters
-  become: True
-  gather_facts: False
+- name: 'Setup pmav99 user'
+  hosts: 'all'
+  become: true
+  gather_facts: true
+  vars:
+    addme_username: 'pmav99'
+    addme_directory: 'zsh_remote'
   roles:
-    - { role: 'master', tags: 'master' }
+    - role: 'pmav99.addme'
 
-- name: setup nodes
-  hosts: all
-  become: True
-  gather_facts: False
+- name: 'Prepare VMs'
+  hosts: 'all'
+  become: true
+  gather_facts: false
+  roles:
+    - role: 'prepare'
+      tags: 'prepare'
+
+- name: 'Initialize master'
+  hosts: 'masters'
+  become: true
+  gather_facts: false
+  roles:
+    - role: 'master'
+      tags: 'master'
+
+- name: 'Setup nodes'
+  hosts: 'all'
+  become: true
+  gather_facts: false
   vars:
     master_hostname: "{{ groups['masters'][0] }}"
   roles:
-    - { role: 'nodes', tags: 'nodes' }
+    - role: 'nodes'
+      tags: 'nodes'

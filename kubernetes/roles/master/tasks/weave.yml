@@ -1,15 +1,29 @@
-- sysctl: name=net.bridge.bridge-nf-call-ip6tables value=1 state=present reload=yes sysctl_set=yes
-- sysctl: name=net.bridge.bridge-nf-call-iptables value=1 state=present reload=yes sysctl_set=yes
-- name: install weave net
+---
+
+- name: 'Enable bridge bridge-nf-call-ip?tables'
+  sysctl:
+    name: '{{ item }}'
+    value: 1
+    state: 'present'
+    reload: true
+    sysctl_set: true
+  with_items:
+    - 'net.bridge.bridge-nf-call-ip6tables'
+    - 'net.bridge.bridge-nf-call-iptables'
+
+- name: 'Install weave net'
+  shell: >
+    mkdir /etc/kubectl/
+    export KUBECONFIG=/etc/kubernetes/admin.conf ;
+    export KUBEVER=$(sudo kubectl version | base64 | tr -d '\n') ;
+    curl --location "https://cloud.weave.works/k8s/net?k8s-version=$KUBEVER" >/etc/kubectl/weave.yml ;
+    kubectl apply -f /etc/kubectl/weave.yml
+
+- name: 'Make sure that the pods are up'
   shell: >
     export KUBECONFIG=/etc/kubernetes/admin.conf ;
-    export kubever=$(sudo kubectl version | base64 | tr -d '\n') ;
-    curl --location "https://cloud.weave.works/k8s/net?k8s-version=$kubever" >/etc/kubectl/weave.yml ;
-    kubectl apply -f /etc/kubectl/weave.yml
-- shell: >
-    export KUBECONFIG=/etc/kubernetes/admin.conf ;
     kubectl get pods -n kube-system -l name=weave-net
-  register: result
+  register: 'result'
   until: result.stdout.find("Running") != -1
   retries: 100
   delay: 10

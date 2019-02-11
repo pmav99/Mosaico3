@@ -1,14 +1,27 @@
-- command: modprobe {{item}}
-  with_items:    
-  - ip_vs
-  - ip_vs_rr
-  - ip_vs_wrr
-  - ip_vs_sh
-  - nf_conntrack_ipv4
-- lineinfile: path=/etc/modules line='{{item}}' create=yes state=present
-  with_items: 
-  - ip_vs
-  - ip_vs_rr
-  - ip_vs_wrr
-  - ip_vs_sh
-  - nf_conntrack_ipv4
+---
+
+- name: 'Modprobe kubernetes related kernel modules'
+  modprobe:
+    name: '{{ item }}'
+    state: 'present'
+  with_items:
+    - 'ip_vs'
+    - 'ip_vs_rr'
+    - 'ip_vs_wrr'
+    - 'ip_vs_sh'
+    - 'nf_conntrack_ipv4'
+  become: true
+
+- name: 'Make sure that the required kernel modules are loaded on reboot'
+  lineinfile:
+    path: '/etc/modules'
+    line: '{{ item }}'
+    create: true
+    state: 'present'
+  with_items:
+    - 'ip_vs'
+    - 'ip_vs_rr'
+    - 'ip_vs_wrr'
+    - 'ip_vs_sh'
+    - 'nf_conntrack_ipv4'
+  become: true

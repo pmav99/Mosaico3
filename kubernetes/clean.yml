@@ -1,17 +1,26 @@
 ---
-- name: reset install
-  hosts: all
-  become: True
-  gather_facts: True
+
+- name: 'Reset installation'
+  hosts: 'all'
+  become: true
+  gather_facts: true
+
   tasks:
-  - name: uninstall docker
-    apt: name={{ item }} state=absent
-    with_items:
-      - kubectl
-      - kubeadm
-      - kubelet
-      - docker.io
-  - file: path=/etc/kubernetes state=absent
-  - file: path=/etc/kubectl state=absent
-  - file: path=/etc/kubeadm-join.sh state=absent
-  - file: path=/var/lib/etcd state=absent
+    - name: 'uninstall docker & kubernetes'
+      apt:
+        name: '{{ item }}'
+        state: 'absent'
+      with_items:
+        - 'kubectl'
+        - 'kubeadm'
+        - 'kubelet'
+        - 'docker.io'
+
+    - file:
+        path: "{{ item }}"
+        state: 'absent'
+      with_items:
+        - '/etc/kubernetes'
+        - '/etc/kubectl'
+        - '/etc/kubeadm-join.sh'
+        - '/var/lib/etcd'
